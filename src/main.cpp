@@ -3,6 +3,8 @@
 #include <cmath> //
 #include <vector>
 
+using namespace std;
+
 float SCREEN_CENTER_X = 0.0f;
 float SCREEN_CENTER_Y = 0.0f;
 
@@ -13,7 +15,7 @@ struct Point {
 };
 
 struct Face {
-  std::vector<Point> points;
+  vector<Point> points;
   Point center = {0.0, 0.0, 0.0};
 };
 
@@ -36,13 +38,15 @@ Vector2 getVector(const Point &point) {
 // the shape class is fundamentally a list of faces, each being a list of points
 class Shape {
 private:
-  std::string name;
+  string name;
   int id;
-  std::vector<Face> faces; // a list of points
+  vector<Face> faces; // a list of points
+  bool selected;
 
 public:
   // Constructor
-  Shape(std::string shapeName, int id) : name(shapeName), id(id) {}
+  Shape(string shapeName, int id, bool selected)
+      : name(shapeName), id(id), selected(selected) {}
 
   // Add an empty face and return its index
   int addFace() {
@@ -52,7 +56,7 @@ public:
 
   // Sort faces from highest average Z (farthest) to lowest average Z (closest)
   void sortFacesByZ() {
-    std::sort(faces.begin(), faces.end(), [](const Face &a, const Face &b) {
+    sort(faces.begin(), faces.end(), [](const Face &a, const Face &b) {
       // Calculate average Z for face 'a'
       double sumA = 0.0;
       for (const auto &p : a.points)
@@ -102,13 +106,14 @@ public:
 
   // Print every face and its points
   void printShapeDetails() const {
-    std::cout << "Shape: " << name << "\n";
-    std::cout << "Number of faces: " << faces.size() << "\n";
+    cout << "Shape: " << name << "\n";
+    cout << "Selected: " << selected << "\n";
+    cout << "Number of faces: " << faces.size() << "\n";
 
     for (size_t i = 0; i < faces.size(); ++i) {
-      std::cout << "  Face " << i + 1 << ":\n";
+      cout << " Face " << i + 1 << ":\n";
       for (const Point &p : faces[i].points) {
-        std::cout << "    (" << p.x << ", " << p.y << ", " << p.z << ")\n";
+        cout << " (" << p.x << ", " << p.y << ", " << p.z << ")\n";
       }
     }
   }
@@ -160,28 +165,53 @@ public:
   }
 
   void changeS(int dir) {
-    float min_z = -300;
+    Point center = get_shape_center();
+    float min_z = -350.0f; // closest to screen possible
+    float max_z = 600.0f;
+    float step = 0.0f;
+    float max_step = 7.0f;
+
+    if (dir == 1) {
+      // Distance from center to the lower boundary
+      float distance = center.z - min_z;
+      if (distance <= 0.0f)
+        return;
+
+      // Calculate a uniform step size
+      step = 10.0f * (distance / 100.0f);
+      if (step < 0.1f)
+        step = 0.1f;
+
+      if (center.z - step < min_z)
+        step = center.z - min_z;
+
+      // Apply a uniform downward shift
+      if (step > max_step) {
+        step = max_step;
+      }
+
+      step = -step;
+    } else {
+      float distance = max_z - center.z;
+      if (distance <= 0.0f)
+        return;
+
+      step = 10.0f * (distance / 100.0f);
+      if (step < 0.1f)
+        step = 0.1f;
+
+      if (center.z + step > max_z)
+        step = max_z - center.z;
+
+      if (step > max_step) {
+        step = max_step;
+      }
+    }
+
+    // Apply the exact same translation to every point so it never distorts
     for (Face &face : faces) {
       for (Point &p : face.points) {
-        if (dir == 1) {
-          float distance = p.z - min_z;
-
-          if (distance <= 0.0f)
-            continue;
-
-          float step = 10.0f * (distance / 100.0f);
-
-          if (step < 0.1f)
-            step = 0.1f;
-
-          p.z -= step;
-
-          if (p.z < min_z)
-            p.z = min_z;
-
-        } else {
-          p.z += 10;
-        }
+        p.z += step;
       }
     }
   }
@@ -199,10 +229,10 @@ public:
     double avgZ = sumZ / face.points.size();
 
     // 2. Clamp avgZ between closer_z and farther_z
-    if (avgZ < std::min(closer_z, farther_z))
-      avgZ = std::min(closer_z, farther_z);
-    if (avgZ > std::max(closer_z, farther_z))
-      avgZ = std::max(closer_z, farther_z);
+    if (avgZ < min(closer_z, farther_z))
+      avgZ = min(closer_z, farther_z);
+    if (avgZ > max(closer_z, farther_z))
+      avgZ = max(closer_z, farther_z);
 
     // 3. Calculate a percentage factor (0.0 = farthest/darkest, 1.0 =
     // closest/brightest)
@@ -250,56 +280,56 @@ public:
 int main() {
 
   /*
-      // Lines & points
-      DrawPixel(int x, int y, Color c)
-      DrawLine(int x1, int y1, int x2, int y2, Color c)
-      -DrawLineV(Vector2 start, Vector2 end, Color c)
-      -DrawLineEx(Vector2 start, Vector2 end, float thickness, Color c)
+  // Lines & points
+  DrawPixel(int x, int y, Color c)
+  DrawLine(int x1, int y1, int x2, int y2, Color c)
+  -DrawLineV(Vector2 start, Vector2 end, Color c)
+  -DrawLineEx(Vector2 start, Vector2 end, float thickness, Color c)
 
-      // Triangles (vertices must be counter-clockwise or it draws nothing)
-      -DrawTriangle(Vector2 v1, Vector2 v2, Vector2 v3, Color c)       //
-     filled DrawTriangleLines(Vector2 v1, Vector2 v2, Vector2 v3, Color c)  //
-     outline
+  // Triangles (vertices must be counter-clockwise or it draws nothing)
+  -DrawTriangle(Vector2 v1, Vector2 v2, Vector2 v3, Color c) //
+  filled DrawTriangleLines(Vector2 v1, Vector2 v2, Vector2 v3, Color c) //
+  outline
 
-      // Other shapes
-      DrawCircle(int x, int y, float radius, Color c)
-      DrawCircleV(Vector2 center, float radius, Color c)
-      DrawCircleLines(int x, int y, float radius, Color c)
-      DrawRectangle(int x, int y, int w, int h, Color c)
-      DrawRectangleLines(int x, int y, int w, int h, Color c)
-      DrawPoly(Vector2 center, int sides, float radius, float rotation, Color
-     c)
+  // Other shapes
+  DrawCircle(int x, int y, float radius, Color c)
+  DrawCircleV(Vector2 center, float radius, Color c)
+  DrawCircleLines(int x, int y, float radius, Color c)
+  DrawRectangle(int x, int y, int w, int h, Color c)
+  DrawRectangleLines(int x, int y, int w, int h, Color c)
+  DrawPoly(Vector2 center, int sides, float radius, float rotation, Color
+  c)
 
-      // Text
-      DrawText(const char* text, int x, int y, int fontSize, Color c)
-      DrawFPS(int x, int y)
-      TextFormat("x: %f", x)   // printf-style, returns a string for DrawText
+  // Text
+  DrawText(const char* text, int x, int y, int fontSize, Color c)
+  DrawFPS(int x, int y)
+  TextFormat("x: %f", x) // printf-style, returns a string for DrawText
 
-      // Colors
-      BLACK, WHITE, RAYWHITE, GRAY, LIGHTGRAY, DARKGRAY, RED, MAROON,
-      ORANGE, YELLOW, GOLD, GREEN, LIME, DARKGREEN, SKYBLUE, BLUE, DARKBLUE,
-     PURPLE, VIOLET, PINK, MAGENTA, BROWN, BEIGE
+  // Colors
+  BLACK, WHITE, RAYWHITE, GRAY, LIGHTGRAY, DARKGRAY, RED, MAROON,
+  ORANGE, YELLOW, GOLD, GREEN, LIME, DARKGREEN, SKYBLUE, BLUE, DARKBLUE,
+  PURPLE, VIOLET, PINK, MAGENTA, BROWN, BEIGE
 
-      // Timing & screen
-      GetFrameTime() // gives seconds since the last frame. Multiply your
-     rotation speed by it. GetTime() // gives seconds since start.
-      GetScreenWidth() / GetScreenHeight()
+  // Timing & screen
+  GetFrameTime() // gives seconds since the last frame. Multiply your
+  rotation speed by it. GetTime() // gives seconds since start.
+  GetScreenWidth() / GetScreenHeight()
 
-      Extra
-      GetMousePosition()
+  Extra
+  GetMousePosition()
   */
 
   int width = 1000;
   int height = 1000;
-  std::vector<Shape> shapes;
+  vector<Shape> shapes;
   InitWindow(width, height, "title");
   SetTargetFPS(60);
 
   SCREEN_CENTER_X = (float)GetScreenWidth() / 2;
   SCREEN_CENTER_Y = (float)GetScreenHeight() / 2;
 
-  // Create a Triangle shape
-  Shape shape("Triangle", 1);
+  // Create a Cube shape
+  Shape shape("Cube", 1, false);
   shapes.push_back(shape);
   int f = shape.addFace(); // front (z = -25)
   shape.addPoint(-25.0, -25.0, -25.0, f);
