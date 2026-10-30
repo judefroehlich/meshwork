@@ -1,0 +1,18 @@
+#version 330 core
+layout (location = 0) in vec3 aPos;
+
+void main()
+{
+    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+}
+
+        ^
+        |
+Basic GLSL vertex shader
+
+
+A vector in GLSL has a maximum size of 4 and each of its values 
+can be retrieved via vec.x, vec.y, vec.z and vec.w respectively 
+where each of them represents a coordinate in space. Note that 
+the vec.w component is not used as a position in space (we're dealing 
+with 3D, not 4D) but is used for something called perspective division
