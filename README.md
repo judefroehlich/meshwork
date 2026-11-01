@@ -31,7 +31,7 @@ Meshworks is currently developed and tested on Linux.
 
 - A C++17 compiler (g++ or clang++)
 - GLFW 3
-- A GPU that supports OpenGL 3.3
+- A GPU that supports OpenGL 3.3.
   glad is included in the repo, so you don't need to install it separately.
 
 Install GLFW:
@@ -47,7 +47,7 @@ sudo apt install build-essential libglfw3-dev
 ### Build
 
 ```bash
-git clone https://github.com/<judefroehlich>/meshworks.git
+git clone https://github.com/judefroehlich/meshworks.git
 cd meshworks
 g++ -Wall -Wextra src/*.cpp src/glad.c -Iinclude -lglfw -o main
 ```
