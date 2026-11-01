@@ -38,7 +38,7 @@ int main() {
 
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-  Shader basicShader("./src/shaders/shader.vs", "./src/shaders/shader.fs");
+  Shader basicShader("./src/shaders/shader.vert", "./src/shaders/shader.frag");
 
   float vertices[] = {
       // positions         // colors
